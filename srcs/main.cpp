@@ -68,6 +68,7 @@ static bool prepare_standard_inout()
 				return false;
 		}
 	}
+	::close(null_fd);
 	return true;
 }
 
