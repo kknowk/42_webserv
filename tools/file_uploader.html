@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>file uploader</title>
+	<meta charset="utf-8" />
+	<script type="text/javascript">
+		async function uploadFile() {
+			const fileInput = document.getElementById('fileInput');
+			const file = fileInput.files[0];
+
+			if (!file) {
+				alert('Please select a file!');
+				return;
+			}
+
+			try {
+				// FileReaderを使用して、選択されたファイルを読み込む
+				const reader = new FileReader();
+				reader.onload = async (e) => {
+					try {
+						// 読み込んだデータをバイナリとしてPOST
+						const response = await fetch('http://localhost:8000/image/hoge.txt', {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/octet-stream', // または 'text/plain'
+							},
+							body: e.target.result, // 読み込んだファイルの内容
+						});
+
+						if (!response.ok) {
+							throw new Error(`HTTP error! status: ${response.status}`);
+						}
+
+						console.log('File uploaded successfully!');
+					} catch (error) {
+						console.error('Upload failed:', error);
+					}
+				};
+				reader.readAsArrayBuffer(file); // ArrayBufferとしてファイルを読み込む
+			} catch (error) {
+				console.error('File reading failed:', error);
+			}
+		}
+	</script>
+</head>
+
+<body>
+	<input type="file" id="fileInput" />
+	<button onclick="uploadFile()">Upload</button>
+</body>
+
+</html>
