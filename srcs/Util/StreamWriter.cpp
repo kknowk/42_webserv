@@ -2,17 +2,18 @@
 #include "Util/Uri.hpp"
 #include "Util/IpAddress.hpp"
 #include <cstring>
+#include <climits>
 
 void StreamWriter::write(std::ostream &stream, const unsigned long long int &value)
 {
 	char bytes[8];
-	bytes[0] = static_cast<char>(static_cast<unsigned char>(value >> 56));
-	bytes[1] = static_cast<char>(static_cast<unsigned char>(value >> 48));
-	bytes[2] = static_cast<char>(static_cast<unsigned char>(value >> 40));
-	bytes[3] = static_cast<char>(static_cast<unsigned char>(value >> 32));
-	bytes[4] = static_cast<char>(static_cast<unsigned char>(value >> 24));
-	bytes[5] = static_cast<char>(static_cast<unsigned char>(value >> 16));
-	bytes[6] = static_cast<char>(static_cast<unsigned char>(value >> 8));
+	bytes[0] = static_cast<char>(static_cast<unsigned char>(value >> (7 * CHAR_BIT)));
+	bytes[1] = static_cast<char>(static_cast<unsigned char>(value >> (6 * CHAR_BIT)));
+	bytes[2] = static_cast<char>(static_cast<unsigned char>(value >> (5 * CHAR_BIT)));
+	bytes[3] = static_cast<char>(static_cast<unsigned char>(value >> (4 * CHAR_BIT)));
+	bytes[4] = static_cast<char>(static_cast<unsigned char>(value >> (3 * CHAR_BIT)));
+	bytes[5] = static_cast<char>(static_cast<unsigned char>(value >> (2 * CHAR_BIT)));
+	bytes[6] = static_cast<char>(static_cast<unsigned char>(value >> (1 * CHAR_BIT)));
 	bytes[7] = static_cast<char>(static_cast<unsigned char>(value));
 	stream.write(bytes, 8);
 }
@@ -36,9 +37,9 @@ void StreamWriter::write(std::ostream &stream, const unsigned long int &value)
 void StreamWriter::write(std::ostream &stream, const unsigned int &value)
 {
 	char bytes[4];
-	bytes[0] = static_cast<char>(static_cast<unsigned char>(value >> 24));
-	bytes[1] = static_cast<char>(static_cast<unsigned char>(value >> 16));
-	bytes[2] = static_cast<char>(static_cast<unsigned char>(value >> 8));
+	bytes[0] = static_cast<char>(static_cast<unsigned char>(value >> (3 * CHAR_BIT)));
+	bytes[1] = static_cast<char>(static_cast<unsigned char>(value >> (2 * CHAR_BIT)));
+	bytes[2] = static_cast<char>(static_cast<unsigned char>(value >> (1 * CHAR_BIT)));
 	bytes[3] = static_cast<char>(static_cast<unsigned char>(value));
 	stream.write(bytes, 4);
 }

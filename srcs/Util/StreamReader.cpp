@@ -3,6 +3,7 @@
 #include "Util/IpAddress.hpp"
 #include <cstring>
 #include <algorithm>
+#include <climits>
 
 void StreamReader::read(std::vector<char>::const_iterator &itr, const std::vector<char>::const_iterator &end, Config &config)
 {
@@ -52,25 +53,25 @@ void StreamReader::read(std::vector<char>::const_iterator &itr, const std::vecto
 	value = static_cast<unsigned char>(*itr++);
 	if (itr == end)
 		throw std::out_of_range("read64 is out of range.");
-	value = (value << 8) | static_cast<unsigned char>(*itr++);
+	value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
 	if (itr == end)
 		throw std::out_of_range("read64 is out of range.");
-	value = (value << 8) | static_cast<unsigned char>(*itr++);
+	value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
 	if (itr == end)
 		throw std::out_of_range("read64 is out of range.");
-	value = (value << 8) | static_cast<unsigned char>(*itr++);
+	value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
 	if (itr == end)
 		throw std::out_of_range("read64 is out of range.");
-	value = (value << 8) | static_cast<unsigned char>(*itr++);
+	value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
 	if (itr == end)
 		throw std::out_of_range("read64 is out of range.");
-	value = (value << 8) | static_cast<unsigned char>(*itr++);
+	value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
 	if (itr == end)
 		throw std::out_of_range("read64 is out of range.");
-	value = (value << 8) | static_cast<unsigned char>(*itr++);
+	value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
 	if (itr == end)
 		throw std::out_of_range("read64 is out of range.");
-	value = (value << 8) | static_cast<unsigned char>(*itr++);
+	value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
 }
 
 void StreamReader::read(std::vector<char>::const_iterator &itr, const std::vector<char>::const_iterator &end, unsigned long int &value)
@@ -97,13 +98,13 @@ void StreamReader::read(std::vector<char>::const_iterator &itr, const std::vecto
 	value = static_cast<unsigned char>(*itr++);
 	if (itr == end)
 		throw std::out_of_range("read32 is out of range.");
-	value = (value << 8) | static_cast<unsigned char>(*itr++);
+	value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
 	if (itr == end)
 		throw std::out_of_range("read32 is out of range.");
-	value = (value << 8) | static_cast<unsigned char>(*itr++);
+	value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
 	if (itr == end)
 		throw std::out_of_range("read32 is out of range.");
-	value = (value << 8) | static_cast<unsigned char>(*itr++);
+	value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
 }
 
 void StreamReader::read(std::vector<char>::const_iterator &itr, const std::vector<char>::const_iterator &end, uint8_t &value)
