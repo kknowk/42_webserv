@@ -51,43 +51,24 @@ void StreamReader::read(std::vector<char>::const_iterator &itr, const std::vecto
 	if (itr == end)
 		throw std::out_of_range("read64 is out of range.");
 	value = static_cast<unsigned char>(*itr++);
-	if (itr == end)
-		throw std::out_of_range("read64 is out of range.");
-	value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
-	if (itr == end)
-		throw std::out_of_range("read64 is out of range.");
-	value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
-	if (itr == end)
-		throw std::out_of_range("read64 is out of range.");
-	value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
-	if (itr == end)
-		throw std::out_of_range("read64 is out of range.");
-	value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
-	if (itr == end)
-		throw std::out_of_range("read64 is out of range.");
-	value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
-	if (itr == end)
-		throw std::out_of_range("read64 is out of range.");
-	value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
-	if (itr == end)
-		throw std::out_of_range("read64 is out of range.");
-	value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
+	for (unsigned long i = 1; i < sizeof(unsigned long long int); ++i) {
+		if (itr == end)
+			throw std::out_of_range("read64 is out of range.");
+		value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
+	}
 }
 
 void StreamReader::read(std::vector<char>::const_iterator &itr, const std::vector<char>::const_iterator &end, unsigned long int &value)
 {
-    if (sizeof(unsigned long int) == sizeof(unsigned int))
-    {
-        unsigned int tmp;
-        StreamReader::read(itr, end, tmp);
-        std::memcpy(&value, &tmp, sizeof(value));
-    }
-    else
-    {
-        unsigned long long int tmp;
-        StreamReader::read(itr, end, tmp);
-        std::memcpy(&value, &tmp, sizeof(value));
-    }
+	value = 0;
+	if (itr == end)
+		throw std::out_of_range("read unsigned long int is out of range.");
+	value = static_cast<unsigned char>(*itr++);
+	for (unsigned long i = 1; i < sizeof(unsigned long int); ++i) {
+		if (itr == end)
+			throw std::out_of_range("read unsigned long int is out of range.");
+		value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
+	}
 }
 
 void StreamReader::read(std::vector<char>::const_iterator &itr, const std::vector<char>::const_iterator &end, unsigned int &value)
@@ -96,15 +77,11 @@ void StreamReader::read(std::vector<char>::const_iterator &itr, const std::vecto
 	if (itr == end)
 		throw std::out_of_range("read32 is out of range.");
 	value = static_cast<unsigned char>(*itr++);
-	if (itr == end)
-		throw std::out_of_range("read32 is out of range.");
-	value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
-	if (itr == end)
-		throw std::out_of_range("read32 is out of range.");
-	value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
-	if (itr == end)
-		throw std::out_of_range("read32 is out of range.");
-	value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
+	for (unsigned long i = 1; i < sizeof(unsigned int); ++i) {
+		if (itr == end)
+			throw std::out_of_range("read32 is out of range.");
+		value = (value << CHAR_BIT) | static_cast<unsigned char>(*itr++);
+	}
 }
 
 void StreamReader::read(std::vector<char>::const_iterator &itr, const std::vector<char>::const_iterator &end, uint8_t &value)
