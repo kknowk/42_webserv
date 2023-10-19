@@ -2,45 +2,30 @@
 #include "Util/Uri.hpp"
 #include "Util/IpAddress.hpp"
 #include <cstring>
+#include <climits>
 
 void StreamWriter::write(std::ostream &stream, const unsigned long long int &value)
 {
-	char bytes[8];
-	bytes[0] = static_cast<char>(static_cast<unsigned char>(value >> 56));
-	bytes[1] = static_cast<char>(static_cast<unsigned char>(value >> 48));
-	bytes[2] = static_cast<char>(static_cast<unsigned char>(value >> 40));
-	bytes[3] = static_cast<char>(static_cast<unsigned char>(value >> 32));
-	bytes[4] = static_cast<char>(static_cast<unsigned char>(value >> 24));
-	bytes[5] = static_cast<char>(static_cast<unsigned char>(value >> 16));
-	bytes[6] = static_cast<char>(static_cast<unsigned char>(value >> 8));
-	bytes[7] = static_cast<char>(static_cast<unsigned char>(value));
-	stream.write(bytes, 8);
+	char bytes[sizeof(unsigned long long int)];
+	for (size_t index = 0; index < sizeof(unsigned long long int); index++)
+		bytes[index] = static_cast<char>(static_cast<unsigned char>(value >> ((sizeof(unsigned long long int) - index - 1) * CHAR_BIT)));
+	stream.write(bytes, sizeof(unsigned long long int));
 }
 
 void StreamWriter::write(std::ostream &stream, const unsigned long int &value)
 {
-	if (sizeof(unsigned long int) == sizeof(unsigned long long int))
-	{
-		unsigned long long int tmp;
-		std::memcpy(&tmp, &value, sizeof(tmp));
-		StreamWriter::write(stream, tmp);
-	}
-	else
-	{
-		unsigned int tmp;
-		std::memcpy(&tmp, &value, sizeof(tmp));
-		StreamWriter::write(stream, tmp);
-	}
+	char bytes[sizeof(unsigned long int)];
+	for (size_t index = 0; index < sizeof(unsigned long int); index++)
+		bytes[index] = static_cast<char>(static_cast<unsigned char>(value >> ((sizeof(unsigned long int) - index - 1) * CHAR_BIT)));
+	stream.write(bytes, sizeof(unsigned long int));
 }
 
 void StreamWriter::write(std::ostream &stream, const unsigned int &value)
 {
-	char bytes[4];
-	bytes[0] = static_cast<char>(static_cast<unsigned char>(value >> 24));
-	bytes[1] = static_cast<char>(static_cast<unsigned char>(value >> 16));
-	bytes[2] = static_cast<char>(static_cast<unsigned char>(value >> 8));
-	bytes[3] = static_cast<char>(static_cast<unsigned char>(value));
-	stream.write(bytes, 4);
+	char bytes[sizeof(unsigned int)];
+	for (size_t index = 0; index < sizeof(unsigned int); index++)
+		bytes[index] = static_cast<char>(static_cast<unsigned char>(value >> ((sizeof(unsigned int) - index - 1) * CHAR_BIT)));
+	stream.write(bytes, sizeof(unsigned int));
 }
 
 void StreamWriter::write(std::ostream &stream, const uint8_t &value)
