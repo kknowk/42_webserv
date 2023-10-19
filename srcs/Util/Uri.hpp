@@ -41,8 +41,6 @@ public:
 	const Span &get_parameter() const;
 	const Span &get_anchor() const;
 
-	bool is_match(const std::string &location) const;
-
 	/// @return false: Invalid Path
 	bool append_normalize_path(std::vector<char> &buffer) const;
 	static void decode_path(std::vector<char> &buffer);

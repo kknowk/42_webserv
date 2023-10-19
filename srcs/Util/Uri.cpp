@@ -2,14 +2,18 @@
 #include "Util/StringHelper.hpp"
 #include <new>
 #include <vector>
+#include <set>
+#include <iostream>
+#include <sstream>
 
 Uri::Uri()
-	: value(),
-	  domain(value, 0, 0), userinfo(value, 0, 0),
-	  port(value, 0, 0),
-	  path(value, 0, 0),
-	  parameter(value, 0, 0),
-	  fragment(value, 0, 0)
+	:	value(),
+	domain(value, 0, 0),
+	userinfo(value, 0, 0),
+	port(value, 0, 0),
+	path(value, 0, 0),
+	parameter(value, 0, 0),
+	fragment(value, 0, 0)
 {
 }
 
@@ -28,39 +32,90 @@ Uri &Uri::operator=(const Uri &right)
 	{
 		this->value = right.value;
 		this->domain = right.domain.rebase(this->value);
-		this->port = right.port.rebase(this->value);
-		this->fragment = right.fragment.rebase(this->value);
-		this->parameter = right.parameter.rebase(this->value);
-		this->path = right.path.rebase(this->value);
 		this->userinfo = right.userinfo.rebase(this->value);
+		this->port = right.port.rebase(this->value);
+		this->path = right.path.rebase(this->value);
+		this->parameter = right.parameter.rebase(this->value);
+		this->fragment = right.fragment.rebase(this->value);
 	}
 	return *this;
 }
 
 bool Uri::is_valid_port()
 {
-	unsigned long port_number = 0;
+	// https://ja.linux-console.net/?p=7399
+	const unsigned int BLOCKED_PORT_ARRAY[] = \
+	{21, 22, 23, 53, 80, 161, 1080, 4444, 6660, 6661, 6662, 6663, 6664, 6665, 6666, 6667, 6668, 6669};
+	const std::set<unsigned int> BLOCKED_PORTS(BLOCKED_PORT_ARRAY, BLOCKED_PORT_ARRAY + sizeof(BLOCKED_PORT_ARRAY) / sizeof(BLOCKED_PORT_ARRAY[0]));
+	unsigned long port_num = 0;
+
+	// : スタートのためbegin() + 1
 	for (Span::iterator itr = this->port.begin() + 1; itr != this->port.end(); itr++)
 	{
 		char c = *itr;
 		if (!std::isdigit(c))
 			return false;
 		unsigned int digit = c - '0';
-		port_number = port_number * 10 + digit;
-		if (port_number > 65535)
+		port_num = port_num * 10 + digit;
+		// 16-bit の負でない整数の最大値
+		if (port_num > 65535)
 			return false;
 	}
+	if (BLOCKED_PORTS.find(port_num) != BLOCKED_PORTS.end())
+		return false;
 	return true;
 }
 
+// https://www.nic.ad.jp/ja/dom/system.html
 bool Uri::is_valid_domain()
 {
-	if (this->domain.size() == 0)
-		return false;
-	if (this->domain[0] == '[')
+	if (this->domain.size() > 253)
+		return false; 
+	// https://www.ipentec.com/document/windows-internet-explorer-specified-ipv6-in-url
+	// ipv6
+	if (domain[0] == '[')
 	{
-		if (this->domain[this->domain.size() - 1] != ']')
+		// '[' 分+1
+		Span::iterator start = this->domain.begin() + 1;
+		Span::iterator end = std::find(start, this->domain.end(), ':');
+	
+		while (end != this->domain.end())
+		{
+			std::string label(start, end);
+			if (label.size() > 4)
+				return false;
+			for (std::string::iterator it = label.begin(); it != label.end(); ++it)
+			{
+				char c = *it;
+				if (!std::isxdigit(c))
+					return false;
+			}
+			start = end + 1;
+			end = std::find(start, this->domain.end(), ':');
+		}
+		if (domain[domain.size() - 1] != ']')
 			return false;
+		return true;
+	}
+	else
+	{
+		Span::iterator start = this->domain.begin();
+		Span::iterator end = std::find(start, this->domain.end(), '.');
+
+		while (end != this->domain.end())
+		{
+			std::string label(start, end);
+			if (label.size() > 63)
+				return false;
+			for (std::string::iterator it = label.begin(); it != label.end(); ++it)
+			{
+				char c = *it;
+				if (!std::isalnum(c) && c != '-')
+					return false;
+			}
+			start = end + 1;
+			end = std::find(start, this->domain.end(), '.');
+		}
 	}
 	return true;
 }
@@ -82,6 +137,19 @@ bool Uri::is_valid_fragment()
 
 bool Uri::try_parse_domain()
 {
+	// ipv6
+	if (this->domain[0] == '[')
+	{
+		size_t end = this->domain.find(']');
+		if (end == std::string::npos)
+			return false;
+		if (end + 1 < this->domain.size() && this->domain[end + 1] == ':')
+		{
+			new (&this->port) Span(this->domain, end + 2);
+			this->domain = this->domain.slice(1, end - 1);
+		}
+		return true;
+	}
 	std::string::size_type userinfo_found = this->domain.find('@');
 	if (userinfo_found != std::string::npos)
 	{
@@ -93,57 +161,67 @@ bool Uri::try_parse_domain()
 	std::string::size_type port_found = this->domain.find(':');
 	if (port_found != std::string::npos)
 	{
-		new (&this->port) Span(this->domain, port_found);
+		new (&this->port) Span(this->domain, port_found + 1);
 		this->domain = this->domain.slice(0, port_found);
 		if (!this->is_valid_port())
 			return false;
 	}
-	return this->is_valid_domain();
+	return is_valid_domain();
 }
 
 bool Uri::try_parse_parameter_and_fragment()
 {
+	// 検索クエリなど
+	// 例 : https://example.com/page.html?param=value#section1
 	std::string::size_type parameter_found = this->path.find('?');
 	if (parameter_found == std::string::npos)
 	{
+		// 特定のページ内のセクションや位置を指定
 		std::string::size_type fragment_found = this->path.find('#');
 		if (fragment_found == std::string::npos)
 			return this->is_valid_path();
+		// '#'以降の位置を確保　例 : #section1
 		new (&this->fragment) Span(this->path, fragment_found);
+		// クエリがないので#までを確保またドメインとスキームもない　例 : /page.html
 		new (&this->path) Span(this->path, 0, fragment_found);
-		if (!this->is_valid_path())
-			return false;
-		return this->is_valid_fragment();
 	}
 	new (&this->parameter) Span(this->path, parameter_found);
+	// クエリがあるので?までをパスとする
 	new (&this->path) Span(this->path, 0, parameter_found);
 	if (!this->is_valid_path())
 		return false;
-	std::string::size_type fragment_found = this->parameter.find('#');
+	std::string::size_type fragment_found = this->path.find('#');
 	if (fragment_found == std::string::npos)
-		return this->is_valid_parameter();
+			return this->is_valid_parameter();
 	new (&this->fragment) Span(this->parameter, fragment_found);
 	new (&this->parameter) Span(this->parameter, 0, fragment_found);
 	if (!this->is_valid_parameter())
 		return false;
 	return this->is_valid_fragment();
+
 }
 
+// リダイレクトで使う
 bool Uri::try_parse(const std::string &input, Uri &output)
 {
 	output.value = input;
 	bool is_http_start = output.value.find("http://") == 0;
-	if (!is_http_start && output.value.find("https://") != 0)
+	bool is_https_start = output.value.find("https://") == 0;
+	if (!is_http_start && !is_https_start)
 		return false;
+	// 終端のヌル文字含めず
 	std::string::size_type found = output.value.find('/', (is_http_start ? sizeof("http://") : sizeof("https://")) - 1);
+	// path がなかったら
 	if (found == std::string::npos)
 		new (&output.domain) Span(output.value, 0, output.value.size());
 	else
 		new (&output.domain) Span(output.value, 0, found);
 	if (!output.try_parse_domain())
 		return false;
+	// path はなくとも良い
 	if (found == std::string::npos)
 		return true;
+	// path を格納
 	new (&output.path) Span(output.value, found);
 	if (output.path.size() == 0)
 		return true;
@@ -192,39 +270,61 @@ const Span &Uri::get_anchor() const
 
 bool is_c0_control(int c)
 {
+	// NULL、BS、TAB 、改行　とか
 	return c >= 0 && c <= 0x1f;
 }
 
 bool is_c0_control_or_space(int c)
 {
+	// space
 	return c >= 0 && c <= 0x20;
 }
 
 bool is_control(int c)
 {
+	// is_space 的な
 	return is_c0_control(c) || (c >= 0x7f && c <= 0x9f);
 }
 
+// https://triple-underscore.github.io/URL-ja.html#hosts-(domains-and-ip-addresses)
+// 禁止されているホスト符号位置
 bool is_forbidden_host_codepoint(int c)
 {
 	switch (c)
 	{
+	// NULL
 	case '\0':
+	// TAB
 	case '\x09':
+	// LF
 	case '\x0a':
+	// CR
 	case '\x0d':
+	// SPACE
 	case '\x20':
+	// #
 	case '\x23':
+	// /
 	case '\x2f':
+	// :
 	case '\x3a':
+	// <
 	case '\x3c':
+	// >
 	case '\x3e':
+	// ?
 	case '\x3f':
+	// @
 	case '\x40':
+	// [
 	case '\x5b':
+	// '\'
 	case '\x5c':
+	// ]
 	case '\x5d':
+	// ^
 	case '\x5e':
+	// |
 	case '\x7c':
 		return true;
 	}
@@ -233,38 +333,16 @@ bool is_forbidden_host_codepoint(int c)
 
 bool is_forbidden_domain_codepoint(int c)
 {
+	// DELETE文字
 	return is_forbidden_host_codepoint(c) || is_c0_control(c) || c == '%' || c == '\x7f';
-}
-
-bool Uri::is_match(const std::string &location) const
-{
-	if (location.empty())
-		return false;
-	if (location[0] == '/')
-	{
-		if (this->path == location)
-			return true;
-		if (!this->path.starts_with(location.c_str()))
-			return false;
-		if (this->path[location.size()] == '/')
-			return true;
-		return false;
-	}
-	else
-	{
-		Uri uri;
-		if (!Uri::try_parse(location, uri))
-			return false;
-		return uri.is_match(location);
-	}
 }
 
 int Uri::calculate_hex_digit(char c0)
 {
 	if (std::isdigit(c0))
-	{
 		return c0 - '0';
-	}
+	// 'A' = 65 = 0100 0001 (バイナリ)
+	// 'a' = 97 = 0110 0001 (バイナリ)
 	return (c0 | 32) - 'a' + 10;
 }
 
@@ -273,6 +351,7 @@ int Uri::calculate_hex_digits(char c0, char c1)
 	return (calculate_hex_digit(c0) << 4) | calculate_hex_digit(c1);
 }
 
+// 特定の役割がある
 bool Uri::is_uri_reserved_char(int c)
 {
 	switch (c)
@@ -394,6 +473,7 @@ bool Uri::append_normalize_path(std::vector<char> &buffer) const
 	return true;
 }
 
+// to file path
 void Uri::decode_path(std::vector<char> &buffer)
 {
 	for (std::size_t index = 0; index < buffer.size();)
