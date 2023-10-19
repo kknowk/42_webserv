@@ -78,7 +78,14 @@ static void create_environment_variable_dictionary(EnvironmentVariableDictionary
 	if (parameter.size() == 0)
 		dictionary.operator[]("QUERY_STRING").operator=(empty);
 	else
-		dictionary.operator[]("QUERY_STRING").operator=(parameter.slice(1).to_string());
+	{
+		std::string query_string = parameter.slice(1).to_string();
+		std::vector<char> buffer(query_string.begin(), query_string.end());
+		Uri::decode_path_ver_query(buffer);
+		std::string decoded_query_string(buffer.begin(), buffer.end());
+		dictionary.operator[]("QUERY_STRING").operator=(decoded_query_string);
+		// dictionary.operator[]("QUERY_STRING").operator=(parameter.slice(1).to_string());
+	}
 	dictionary.operator[]("REMOTE_ADDR").operator=(references.connection.get_counterpart_ip());
 	dictionary.operator[]("REMOTE_HOST").operator=(empty);
 	dictionary.operator[]("REMOTE_IDENT").operator=(empty);

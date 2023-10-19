@@ -494,3 +494,34 @@ void Uri::decode_path(std::vector<char> &buffer)
 		--index;
 	}
 }
+
+// to file path
+void Uri::decode_path_ver_query(std::vector<char> &buffer)
+{
+	// クエリは＋もスペースに変換
+	// https://www.suzukikenichi.com/blog/which-shold-you-use-space-20-or-plus-in-urls-containing-space/
+	for (std::vector<char>::iterator it = buffer.begin(); it != buffer.end(); ++it)
+	{
+		if (*it == '+')
+		{
+			*it = ' ';
+		}
+	}
+	for (std::size_t index = 0; index < buffer.size();)
+	{
+		char c = buffer[index++];
+		if (c != '%')
+			continue;
+		if (index == buffer.size())
+			continue;
+		char c0 = buffer[index++];
+		if (index == buffer.size() || !std::isxdigit(c0))
+			continue;
+		char c1 = buffer[index];
+		if (!std::isxdigit(c1))
+			continue;
+		buffer[index - 2] = static_cast<char>(static_cast<unsigned char>(Uri::calculate_hex_digits(c0, c1)));
+		buffer.erase(buffer.begin() + index - 1, buffer.begin() + index + 1);
+		--index;
+	}
+}

@@ -44,6 +44,7 @@ public:
 	/// @return false: Invalid Path
 	bool append_normalize_path(std::vector<char> &buffer) const;
 	static void decode_path(std::vector<char> &buffer);
+	static void decode_path_ver_query(std::vector<char> &buffer);
 
 private:
 	static int calculate_hex_digit(char c0);
